@@ -15,7 +15,7 @@ A Next.js web application that converts images into short videos using MagicAPI'
 
 ## Demo
 
-Visit the live demo: 
+Visit the live demo: [Click here](https://apimarket1.netlify.app/)
 
 ## API Integration
 
