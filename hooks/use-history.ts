@@ -1,12 +1,22 @@
 import { useLocalStorage } from './use-local-storage';
 
+export interface VideoGenerationOutput {
+  video_url?: string;
+  output?: { output?: string[] };
+  status: string;
+  progress?: number;
+  error?: string;
+}
+
 export interface HistoryItem {
   id: string;
   timestamp: number;
   imageUrl: string;
   videoUrl?: string;
-  prompt: string;
-  status: 'pending' | 'processing' | 'succeeded' | 'failed';
+  prompt?: string;
+  status: 'uploaded' | 'pending' | 'processing' | 'succeeded' | 'failed';
+  uploadedAt?: string;
+  videoGeneration?: VideoGenerationOutput;
 }
 
 export function useHistory() {

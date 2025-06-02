@@ -30,7 +30,8 @@ export interface VideoGenerationResponse {
     created_at?: string | null;
     started_at?: string;
     status: string;
-    video_url: string;
+    video_url?: string;
+    output?: string[];
     metrics?: {
       predict_time: number;
     };
@@ -170,7 +171,15 @@ export class MagicAPIService {
 
       onStatusUpdate?.(status.status);
 
-      if (['SUCCEEDED', 'COMPLETED'].includes(status.status) && status.output?.video_url) {
+      // Check for completion
+      if (status.status === 'COMPLETED' && status.output?.output?.[0]) {
+        return {
+          ...status,
+          output: { ...status.output, video_url: status.output.output[0] }
+        };
+      }
+      
+      if (status.status === 'SUCCEEDED' && status.output?.video_url) {
         return status;
       }
 
