@@ -67,7 +67,7 @@ export function ImageUploader({
                 e.stopPropagation();
                 onClearFile();
               }}
-              className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md hover:bg-gray-100"
+              className="absolute top-2 right-2 p-1 bg-red-500 rounded-full shadow-md hover:bg-gray-100"
               disabled={isUploading}
             >
               <X className="w-4 h-4" />

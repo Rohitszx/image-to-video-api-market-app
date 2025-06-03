@@ -222,67 +222,66 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {!apiKey ? (
-        <div className="flex items-center justify-center min-h-screen p-4">
-          <ApiKeySetup onSubmit={handleApiKeySet} />
-        </div>
-      ) : (
-        <div className="container mx-auto p-4">
-          <PageHeaderClient onClearApiKey={clearApiKey} />
-          
-          <div className={`mt-8 ${isDesktop ? 'grid grid-cols-3 gap-6' : 'space-y-6'}`}>
-            <div className={`${isDesktop ? 'col-span-2' : ''} space-y-6`}>
-              <ImageUploader
-                selectedFile={selectedFile}
-                previewUrl={previewUrl}
-                isUploading={isUploading}
-                onSelectFile={handleFileSelect}
-                onClearFile={clearSelectedFile}
-                error={uploadError}
-              />
-              
-              {previewUrl && (
-                <VideoGenerator
-                  onGenerate={handleGenerateVideo}
-                  isGenerating={isGenerating}
-                  progress={progress}
-                  error={videoError?.message}
-                  videoUrl={videoUrl || undefined}
-                />
-              )}
-              
-              <div id="video-section">
-                {(videoUrl || selectedVideoUrl) && (
-                  <Card className="p-6 space-y-4">
-                    <div className="text-center">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Preview Video</h3>
-                    </div>
-                    <VideoPlayer videoUrl={selectedVideoUrl || videoUrl!} />
-                  </Card>
-                )}
-              </div>
-            </div>
+      
+        <PageHeaderClient />
+        <div className="container mx-auto p-4 pt-[72px]">
+        <ApiKeySetup 
+          onSubmit={handleApiKeySet}
+          onClearApiKey={clearApiKey}
+          apiKey={apiKey}
+        />
+        
+        <div className={`${isDesktop ? 'grid grid-cols-3 gap-6' : 'space-y-6'}`}>
+          <div className={`${isDesktop ? 'col-span-2' : ''} space-y-6`}>
+            <ImageUploader
+              selectedFile={selectedFile}
+              previewUrl={previewUrl}
+              isUploading={isUploading}
+              onSelectFile={handleFileSelect}
+              onClearFile={clearSelectedFile}
+              error={uploadError}
+            />
             
-            <div>
-              <HistoryPanel 
-                history={history} 
-                onItemClick={handleHistoryItemClick}
-                onClearHistory={clearHistory}
-                onPlayVideo={(videoUrl) => {
-                  setSelectedVideoUrl(videoUrl);
-
-                  setTimeout(() => {
-                    const videoElement = document.getElementById('video-section');
-                    if (videoElement) {
-                      videoElement.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }, 100);
-                }}
-              />
+            <VideoGenerator
+              onGenerate={handleGenerateVideo}
+              isGenerating={isGenerating}
+              progress={progress}
+              error={!apiKey ? 'Please enter your API key to generate videos' : videoError?.message}
+              videoUrl={videoUrl || undefined}
+              disabled={!apiKey}
+            />
+            
+            <div id="video-section">
+              {(videoUrl || selectedVideoUrl) && (
+                <Card className="p-6 space-y-4">
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Preview Video</h3>
+                  </div>
+                  <VideoPlayer videoUrl={selectedVideoUrl || videoUrl!} />
+                </Card>
+              )}
             </div>
           </div>
+          
+          <div>
+            <HistoryPanel 
+              history={history} 
+              onItemClick={handleHistoryItemClick}
+              onClearHistory={clearHistory}
+              onPlayVideo={(videoUrl) => {
+                setSelectedVideoUrl(videoUrl);
+
+                setTimeout(() => {
+                  const videoElement = document.getElementById('video-section');
+                  if (videoElement) {
+                    videoElement.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }, 100);
+              }}
+            />
+          </div>
         </div>
-      )}
+      </div>
     </main>
   );
 }

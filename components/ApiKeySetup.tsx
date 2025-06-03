@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Key, Eye, EyeOff } from 'lucide-react';
+import { KeyRound, Eye, EyeOff, ChevronDown, ExternalLink, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,24 +11,34 @@ import { Card } from '@/components/ui/card';
 interface ApiKeySetupProps {
   onApiKeySet?: (apiKey: string) => void;
   onSubmit?: (apiKey: string) => Promise<void>;
+  onClearApiKey?: () => void;
+  apiKey?: string | null;
 }
 
-export const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onApiKeySet, onSubmit }) => {
-  const [apiKey, setApiKey] = useState('');
+export const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onApiKeySet, onSubmit, onClearApiKey, apiKey: savedApiKey }) => {
+  const [newApiKey, setNewApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [isButtonEnabled, setIsButtonEnabled] = useState(false);
 
   useEffect(() => {
-    setIsButtonEnabled(apiKey.trim().length > 0);
-  }, [apiKey]);
+    setIsButtonEnabled(newApiKey.trim().length > 0);
+  }, [newApiKey]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (apiKey.trim()) {
+    if (newApiKey.trim()) {
       if (onSubmit) {
-        await onSubmit(apiKey.trim());
+        await onSubmit(newApiKey.trim());
+        setNewApiKey('');
+        setIsEditing(false);
+        setIsExpanded(false);
       } else if (onApiKeySet) {
-        onApiKeySet(apiKey.trim());
+        onApiKeySet(newApiKey.trim());
+        setNewApiKey('');
+        setIsEditing(false);
+        setIsExpanded(false);
       }
     }
   };
@@ -37,32 +47,57 @@ export const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onApiKeySet, onSubmit 
     setShowApiKey(prev => !prev);
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md p-6">
-        <div className="text-center mb-6">
-          <div className="flex justify-center mb-4">
-            <Key className="h-12 w-12 text-blue-500" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Image to Video Generator
-          </h1>
-          <p className="text-gray-600">
-            Enter your MagicAPI key to get started
-          </p>
-        </div>
+  const copyApiKey = async () => {
+    if (savedApiKey) {
+      await navigator.clipboard.writeText(savedApiKey);
+    }
+  };
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="apiKey">API Key</Label>
-            <div className="relative mt-1">
+  return (
+    <Card className="mb-6" id="api-key-section">
+      <div className="flex flex-col space-y-1.5 p-6 pb-3">
+        <div className="flex justify-between items-start">
+          <div 
+            className="flex items-center gap-2 cursor-pointer" 
+            onClick={() => savedApiKey && setIsExpanded(prev => !prev)}
+          >
+            <KeyRound className="h-4 w-4" />
+            <div>
+              <div className="font-semibold tracking-tight text-lg flex items-center">
+                API Key
+                {savedApiKey && (
+                  <ChevronDown 
+                    className={`ml-2 h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+          <a 
+            href="https://api.market" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:text-primary/80 dark:hover:text-white transition-colors flex items-center"
+          >
+            <span>Get an API Key</span>
+            <ExternalLink className="ml-1 h-3 w-3" />
+          </a>
+        </div>
+      </div>
+
+      {!savedApiKey ? (
+        <div className="p-6 pt-0">
+          <div className="text-sm text-muted-foreground mb-2">
+            Your API key is securely stored in your browser
+          </div>
+          <form onSubmit={handleSubmit} className="flex items-center gap-2">
+            <div className="relative flex-1">
               <Input
-                id="apiKey"
                 type={showApiKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your MagicAPI key"
-                className="pr-10"
+                value={newApiKey}
+                onChange={(e) => setNewApiKey(e.target.value)}
+                placeholder="Enter your API key"
+                className="pr-10 font-mono"
                 required
               />
               <Button
@@ -72,30 +107,87 @@ export const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onApiKeySet, onSubmit 
                 className="absolute right-0 top-0 h-full px-3"
                 onClick={toggleShowApiKey}
               >
-                {showApiKey ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
+            <Button type="submit" disabled={!isButtonEnabled}>
+              Save
+            </Button>
+          </form>
+        </div>
+      ) : isExpanded && (
+        <>
+          <div className="p-6 pt-0">
+            <div className="text-sm text-muted-foreground mb-2">
+              Your API key is securely stored in your browser
+            </div>
+            
+            {!isEditing ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type={showApiKey ? 'text' : 'password'}
+                  value={savedApiKey}
+                  className="font-mono bg-background"
+                  readOnly
+                />
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={copyApiKey}
+                  className="h-10 w-10"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type={showApiKey ? 'text' : 'password'}
+                    value={newApiKey}
+                    onChange={(e) => setNewApiKey(e.target.value)}
+                    placeholder="Enter your API key"
+                    className="pr-10 font-mono"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={toggleShowApiKey}
+                  >
+                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <Button type="submit" disabled={!isButtonEnabled}>
+                  Save
+                </Button>
+              </form>
+            )}
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={!isButtonEnabled}
-          >
-            Get Started
-          </Button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-xs text-gray-500">
-            Your API key is stored locally and never sent to our servers
-          </p>
-        </div>
-      </Card>
-    </div>
+          {!isEditing && (
+            <div className="items-center p-6 flex justify-between pt-2 border-t">
+              <Button 
+                variant="outline"
+                onClick={onClearApiKey}
+              >
+                Clear API Key
+              </Button>
+              <Button 
+                onClick={() => {
+                  setIsEditing(true);
+                  setIsExpanded(false);
+                }}
+                className="button-primary"
+              >
+                Update Key
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </Card>
   );
 };
