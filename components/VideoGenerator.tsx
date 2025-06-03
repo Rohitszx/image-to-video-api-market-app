@@ -19,24 +19,26 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+interface VideoRequestData {
+  prompt: string;
+  loraUrl?: string | null;
+  frames?: number;
+  resolution?: string;
+  model?: string;
+  sampleSteps?: number;
+  sampleGuideScale?: number;
+  negativePrompt?: string;
+  loraStrengthModel?: number;
+  loraStrengthClip?: number;
+  aspectRatio?: string;
+  sampleShift?: number;
+  imageUrl?: string;
+}
+
 interface VideoGeneratorProps {
   onClearFile?: () => void;
   imageUrl?: string;
-  onGenerate: (params: {
-    prompt: string;
-    loraUrl?: string | null;
-    frames?: number;
-    resolution?: string;
-    model?: string;
-    sampleSteps?: number;
-    sampleGuideScale?: number;
-    negativePrompt?: string;
-    loraStrengthModel?: number;
-    loraStrengthClip?: number;
-    aspectRatio?: string;
-    sampleShift?: number;
-    imageUrl?: string;
-  }) => void;
+  onGenerate: (params: VideoRequestData) => void;
   isGenerating: boolean;
   progress?: number;
   error?: string;
@@ -238,9 +240,12 @@ export function VideoGenerator({
 
   const handleGenerate = () => {
     if (prompt.trim()) {
+      // Only send loraUrl if a valid option is selected (not 'none')
+      const loraUrl = selectedLoraUrl === 'none' ? null : selectedLoraUrl;
+      
       onGenerate({
         prompt,
-        loraUrl: selectedLoraUrl,
+        loraUrl,
         frames,
         resolution,
         model,
@@ -417,7 +422,7 @@ export function VideoGenerator({
         <div className="space-y-4">
           <Button
             onClick={handleGenerate}
-            disabled={!prompt.trim() || !selectedLoraUrl || isGenerating}
+            disabled={!prompt.trim() || isGenerating}
             className="w-full relative"
             size="lg"
             variant="default"
@@ -439,19 +444,19 @@ export function VideoGenerator({
             <ApiRequestDialog
               requestData={{
                 prompt,
-                loraUrl: selectedLoraUrl,
+                loraUrl: selectedLoraUrl === 'none' ? null : selectedLoraUrl,
                 model,
                 resolution,
                 frames,
                 sampleSteps,
-                guideScale,
+                sampleGuideScale: guideScale,
                 negativePrompt,
                 imageUrl,
                 loraStrengthModel: 1,
                 loraStrengthClip: 1,
                 aspectRatio: 'auto',
                 sampleShift: 8
-              }}
+              } as VideoRequestData}
             />
             <Button variant="outline" className="gap-2" onClick={handleReset}>
               <X className="mr-2 h-4 w-4" />

@@ -16,18 +16,18 @@ import { useToast } from '@/components/ui/use-toast';
 interface ApiRequestDialogProps {
   requestData: {
     prompt: string;
-    loraUrl: string;
-    model: string;
-    resolution: string;
-    frames: number;
-    sampleSteps: number;
-    guideScale: number;
-    negativePrompt: string;
+    loraUrl?: string | null;
+    model?: string;
+    resolution?: string;
+    frames?: number;
+    sampleSteps?: number;
+    sampleGuideScale?: number;
+    negativePrompt?: string;
     imageUrl?: string;
-    loraStrengthModel: number;
-    loraStrengthClip: number;
-    aspectRatio: string;
-    sampleShift: number;
+    loraStrengthModel?: number;
+    loraStrengthClip?: number;
+    aspectRatio?: string;
+    sampleShift?: number;
   };
 }
 
@@ -49,7 +49,7 @@ export function ApiRequestDialog({ requestData }: ApiRequestDialogProps) {
       resolution: requestData.resolution,
       sample_steps: requestData.sampleSteps,
       negative_prompt: requestData.negativePrompt || '',
-      sample_guide_scale: requestData.guideScale
+      sample_guide_scale: requestData.sampleGuideScale
     }
   };
 
