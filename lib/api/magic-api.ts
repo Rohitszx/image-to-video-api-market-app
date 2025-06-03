@@ -107,8 +107,8 @@ export class MagicAPIService {
       headers: { 'x-magicapi-key': this.apiKey },
       body: formData,
     });
-    console.log("Response uploading image",res);
     const data = await this.handleResponse<UploadResponse>(res);
+    console.log('API Response - Upload Image:', JSON.stringify(data, null, 2));
     return data.url;
   }
 
@@ -141,8 +141,8 @@ export class MagicAPIService {
       },
       body: JSON.stringify(bodyData),
     });
-    console.log("Response generating video",res);
     const data = await this.handleResponse<{ id: string }>(res);
+    console.log('API Response - Generate Video:', JSON.stringify(data, null, 2));
     return data.id;
   }
 
@@ -167,7 +167,7 @@ export class MagicAPIService {
 
     while (Date.now() - start < timeout) {
       const status = await this.getVideoStatus(jobId);
-      console.log('[MagicAPI] Video status:', status);
+      console.log('API Response - Video Status:', JSON.stringify(status, null, 2));
 
       onStatusUpdate?.(status.status);
 

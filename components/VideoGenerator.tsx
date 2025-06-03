@@ -21,6 +21,7 @@ import {
 
 interface VideoGeneratorProps {
   onClearFile?: () => void;
+  imageUrl?: string;
   onGenerate: (params: {
     prompt: string;
     loraUrl?: string | null;
@@ -30,6 +31,11 @@ interface VideoGeneratorProps {
     sampleSteps?: number;
     sampleGuideScale?: number;
     negativePrompt?: string;
+    loraStrengthModel?: number;
+    loraStrengthClip?: number;
+    aspectRatio?: string;
+    sampleShift?: number;
+    imageUrl?: string;
   }) => void;
   isGenerating: boolean;
   progress?: number;
@@ -194,12 +200,13 @@ export function VideoGenerator({
   error,
   videoUrl,
   onClearFile,
+  imageUrl,
 }: VideoGeneratorProps) {
   const [prompt, setPrompt] = useState('');
   const [selectedLoraUrl, setSelectedLoraUrl] = useState<string>(LORA_OPTIONS[0].value);
   const [customLoraUrl, setCustomLoraUrl] = useState('');
   const [activeTab, setActiveTab] = useState('preset');
-  const [model, setModel] = useState('1.3b');
+  const [model, setModel] = useState('14b');
   const [resolution, setResolution] = useState('480p');
   const [frames, setFrames] = useState(33);
   const [sampleSteps, setSampleSteps] = useState(20);
@@ -240,6 +247,11 @@ export function VideoGenerator({
         sampleSteps,
         sampleGuideScale: guideScale,
         negativePrompt,
+        loraStrengthModel: 1,
+        loraStrengthClip: 1,
+        aspectRatio: 'auto',
+        sampleShift: 8,
+        imageUrl
       });
     }
   };
@@ -433,7 +445,12 @@ export function VideoGenerator({
                 frames,
                 sampleSteps,
                 guideScale,
-                negativePrompt
+                negativePrompt,
+                imageUrl,
+                loraStrengthModel: 1,
+                loraStrengthClip: 1,
+                aspectRatio: 'auto',
+                sampleShift: 8
               }}
             />
             <Button variant="outline" className="gap-2" onClick={handleReset}>

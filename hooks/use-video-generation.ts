@@ -32,11 +32,8 @@ export const useVideoGeneration = ({ apiKey, onSuccess, onProgress, onError }: U
       setProgress(0);
       const api = getMagicApi();
       
-      console.log('[VideoGeneration] Starting video generation with params:', params);
       const generatedJobId = await api.generateVideo(params);
       setJobId(generatedJobId);
-      
-      console.log('[VideoGeneration] Starting status polling for job:', generatedJobId);
       const response = await api.pollVideoStatus(
         generatedJobId,
         15 * 60 * 1000,
@@ -57,8 +54,6 @@ export const useVideoGeneration = ({ apiKey, onSuccess, onProgress, onError }: U
           }
         }
       );
-      console.log('[VideoGeneration] Video generation completed:', response);
-      
       // Get video URL from either output array or direct video_url
       const videoUrl = response.output?.video_url || (response.output?.output?.[0]);
       if (videoUrl) {
@@ -94,7 +89,7 @@ export const useVideoGeneration = ({ apiKey, onSuccess, onProgress, onError }: U
         existingJobId,
         15 * 60 * 1000,
         (progress) => {
-          console.log('[VideoGeneration] Progress:', progress);
+
           setProgress(progress);
         },
         (status) => {
@@ -108,7 +103,7 @@ export const useVideoGeneration = ({ apiKey, onSuccess, onProgress, onError }: U
           }
         }
       );
-      console.log('[VideoGeneration] Video generated successfully:', response);
+
       setVideoDetails(response);
       
       // Get video URL from either output array or direct video_url

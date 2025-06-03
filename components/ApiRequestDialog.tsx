@@ -23,6 +23,11 @@ interface ApiRequestDialogProps {
     sampleSteps: number;
     guideScale: number;
     negativePrompt: string;
+    imageUrl?: string;
+    loraStrengthModel: number;
+    loraStrengthClip: number;
+    aspectRatio: string;
+    sampleShift: number;
   };
 }
 
@@ -35,16 +40,16 @@ export function ApiRequestDialog({ requestData }: ApiRequestDialogProps) {
       model: requestData.model,
       frames: requestData.frames,
       prompt: requestData.prompt,
-      aspect_ratio: "16:9",
-      sample_shift: 8,
+      image_url: requestData.imageUrl || '',
+      lora_url: requestData.loraUrl,
+      lora_strength_model: requestData.loraStrengthModel,
+      lora_strength_clip: requestData.loraStrengthClip,
+      aspect_ratio: requestData.aspectRatio,
+      sample_shift: requestData.sampleShift,
       resolution: requestData.resolution,
       sample_steps: requestData.sampleSteps,
-      negative_prompt: requestData.negativePrompt,
-      lora_strength_clip: 1,
-      sample_guide_scale: requestData.guideScale,
-      lora_strength_model: 1,
-      seed: null,
-      fast_mode: "Balanced"
+      negative_prompt: requestData.negativePrompt || '',
+      sample_guide_scale: requestData.guideScale
     }
   };
 
