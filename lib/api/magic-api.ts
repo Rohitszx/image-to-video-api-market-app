@@ -118,7 +118,7 @@ export class MagicAPIService {
         ...this.defaultVideoParams,
         prompt: params.prompt,
         image_url: params.imageUrl,
-        lora_url: params.loraUrl === 'none' || !params.loraUrl ? null : params.loraUrl,
+        ...(params.loraUrl && params.loraUrl !== 'none' ? { lora_url: params.loraUrl } : {}),
         frames: params.frames || this.defaultVideoParams.frames,
         negative_prompt: params.negativePrompt || '',
         lora_strength_clip: params.loraStrengthClip || this.defaultVideoParams.lora_strength_clip,
