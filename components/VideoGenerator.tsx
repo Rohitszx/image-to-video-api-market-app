@@ -240,8 +240,9 @@ export function VideoGenerator({
 
   const handleGenerate = () => {
     if (prompt.trim()) {
-      // Only send loraUrl if a valid option is selected (not 'none')
-      const loraUrl = selectedLoraUrl === 'none' ? null : selectedLoraUrl;
+      // Handle LoRA URL selection
+      const loraUrl = selectedLoraUrl === 'none' || !selectedLoraUrl ? null : selectedLoraUrl;
+      console.log('[VideoGenerator] Selected LoRA URL:', loraUrl);
       
       onGenerate({
         prompt,

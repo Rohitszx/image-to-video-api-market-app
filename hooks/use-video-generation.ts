@@ -27,43 +27,65 @@ export const useVideoGeneration = ({ apiKey, onSuccess, onProgress, onError }: U
 
   const mutation = useMutation({
     mutationFn: async (params: VideoGenerationParams) => {
-      setIsGenerating(true);
-      setError(null);
-      setProgress(0);
-      const api = getMagicApi();
-      
-      const generatedJobId = await api.generateVideo(params);
-      setJobId(generatedJobId);
-      const response = await api.pollVideoStatus(
-        generatedJobId,
-        15 * 60 * 1000,
-        (currentProgress: number ) => {
-          if (currentProgress > progress) { 
-            setProgress(currentProgress);
-            onProgress?.(currentProgress);
-          }
-        },
-        (status) => {
-          console.log('[VideoGeneration] Status:', status);
-          if (status === 'IN_QUEUE') {
-            toast.info('Video generation queued...');
-          } else if (status === 'IN_PROGRESS') {
-            toast.info('Generating video...');
-          } else if (status === 'COMPLETED' || status === 'SUCCEEDED') {
-            toast.success('Video generated successfully!');
-          }
+      try {
+        setIsGenerating(true);
+        setError(null);
+        setProgress(0);
+        const api = getMagicApi();
+        
+        // Step 1: Generate video and get job ID
+        console.log('[VideoGeneration] Initiating video generation...');
+        const generatedJobId = await api.generateVideo(params);
+        
+        if (!generatedJobId) {
+          throw new Error('Failed to get job ID from video generation request');
         }
-      );
-      // Get video URL from either output array or direct video_url
-      const videoUrl = response.output?.video_url || (response.output?.output?.[0]);
-      if (videoUrl) {
+        
+        console.log(`[VideoGeneration] Successfully got job ID: ${generatedJobId}`);
+        setJobId(generatedJobId);
+        
+        // Step 2: Only start polling after confirming we have a valid job ID
+        const response = await api.pollVideoStatus(
+          generatedJobId,
+          15 * 60 * 1000,
+          (currentProgress: number) => {
+            if (currentProgress > progress) { 
+              setProgress(currentProgress);
+              onProgress?.(currentProgress);
+            }
+          },
+          (status) => {
+            console.log('[VideoGeneration] Status:', status);
+            if (status === 'IN_QUEUE') {
+              toast.info('Video generation queued...');
+            } else if (status === 'IN_PROGRESS') {
+              toast.info('Generating video...');
+            } else if (status === 'COMPLETED' || status === 'SUCCEEDED') {
+              toast.success('Video generated successfully!');
+            }
+          }
+        );
+
+        // Step 3: Process response only if we have valid output
+        const videoUrl = response.output?.video_url || (response.output?.output?.[0]);
+        if (!videoUrl) {
+          throw new Error('No video URL in response');
+        }
+
+        console.log(`[VideoGeneration] Successfully got video URL: ${videoUrl}`);
         setVideoUrl(videoUrl);
         setProgress(100);
         setIsGenerating(false);
         onSuccess?.(videoUrl, response);
         return response;
+      } catch (error) {
+        console.error('[VideoGeneration] Error in mutation:', error);
+        setIsGenerating(false);
+        setProgress(0);
+        const finalError = error instanceof Error ? error : new Error('Unknown error in video generation');
+        setError(finalError);
+        throw finalError;
       }
-      throw new Error('Failed to generate video');
     },
     onError: (error) => {
       console.error('[VideoGeneration] Error during video generation:', error);
