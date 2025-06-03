@@ -107,8 +107,8 @@ export class MagicAPIService {
       headers: { 'x-magicapi-key': this.apiKey },
       body: formData,
     });
-    console.log("Response uploading image",res);
     const data = await this.handleResponse<UploadResponse>(res);
+    console.log('API Response - Upload Image:', JSON.stringify(data, null, 2));
     return data.url;
   }
 
@@ -118,7 +118,7 @@ export class MagicAPIService {
         ...this.defaultVideoParams,
         prompt: params.prompt,
         image_url: params.imageUrl,
-        lora_url: params.loraUrl || null,
+        ...(params.loraUrl && params.loraUrl !== 'none' ? { lora_url: params.loraUrl } : {}),
         frames: params.frames || this.defaultVideoParams.frames,
         negative_prompt: params.negativePrompt || '',
         lora_strength_clip: params.loraStrengthClip || this.defaultVideoParams.lora_strength_clip,
@@ -133,25 +133,41 @@ export class MagicAPIService {
       },
     };
 
-    const res = await fetch(`${this.videoGenerationBaseUrl}/image-to-video/run`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-magicapi-key': this.apiKey,
-      },
-      body: JSON.stringify(bodyData),
-    });
-    console.log("Response generating video",res);
-    const data = await this.handleResponse<{ id: string }>(res);
-    return data.id;
+    console.log('[VideoGeneration] Request payload:', JSON.stringify(bodyData, null, 2));
+
+    try {
+      const res = await fetch(`${this.videoGenerationBaseUrl}/image-to-video/run`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-magicapi-key': this.apiKey,
+        },
+        body: JSON.stringify(bodyData),
+      });
+
+      const data = await this.handleResponse<{ id: string }>(res);
+      console.log('[VideoGeneration] Generation response:', JSON.stringify(data, null, 2));
+      return data.id;
+    } catch (error) {
+      console.error('[VideoGeneration] Generation request failed:', error);
+      throw error;
+    }
   }
 
   async getVideoStatus(jobId: string): Promise<VideoGenerationResponse> {
-    const res = await fetch(`${this.videoGenerationBaseUrl}/image-to-video/status/${jobId}`, {
-      headers: { 'x-magicapi-key': this.apiKey },
-    });
+    try {
+      console.log(`[VideoGeneration] Checking status for job: ${jobId}`);
+      const res = await fetch(`${this.videoGenerationBaseUrl}/image-to-video/status/${jobId}`, {
+        headers: { 'x-magicapi-key': this.apiKey },
+      });
 
-    return this.handleResponse<VideoGenerationResponse>(res);
+      const status = await this.handleResponse<VideoGenerationResponse>(res);
+      console.log('[VideoGeneration] Status response:', JSON.stringify(status, null, 2));
+      return status;
+    } catch (error) {
+      console.error(`[VideoGeneration] Status check failed for job ${jobId}:`, error);
+      throw error;
+    }
   }
 
   async pollVideoStatus(
@@ -162,41 +178,76 @@ export class MagicAPIService {
   ): Promise<VideoGenerationResponse> {
     const start = Date.now();
     let progress = 0;
+    let lastStatusCheck = 0;
+    let consecutiveErrors = 0;
 
-    await this.wait(45_000);
+    console.log(`[VideoGeneration] Starting status polling for job: ${jobId}`);
+    // Initial wait after generation request
+    await this.wait(15_000);
 
     while (Date.now() - start < timeout) {
-      const status = await this.getVideoStatus(jobId);
-      console.log('[MagicAPI] Video status:', status);
+      try {
+        const currentTime = Date.now();
+        const timeSinceLastCheck = currentTime - lastStatusCheck;
 
-      onStatusUpdate?.(status.status);
+        // Determine minimum wait time based on progress and previous errors
+        const minWaitTime = progress >= 90 ? 8000 : // Near completion
+                         progress >= 60 ? 15000 : // Good progress
+                         progress >= 30 ? 20000 : // Initial progress
+                         30000; // Just started
 
-      // Check for completion
-      if (status.status === 'COMPLETED' && status.output?.output?.[0]) {
-        return {
-          ...status,
-          output: { ...status.output, video_url: status.output.output[0] }
-        };
+        // Add extra wait time if we've had errors
+        const extraWaitTime = consecutiveErrors * 5000; // 5s extra per error
+        const totalWaitTime = Math.min(minWaitTime + extraWaitTime, 45000); // Cap at 45s
+
+        if (timeSinceLastCheck < totalWaitTime) {
+          await this.wait(totalWaitTime - timeSinceLastCheck);
+          continue;
+        }
+
+        const status = await this.getVideoStatus(jobId);
+        lastStatusCheck = Date.now();
+        consecutiveErrors = 0; // Reset error count on successful request
+        onStatusUpdate?.(status.status);
+
+        // Check for completion
+        if (status.status === 'COMPLETED' && status.output?.output?.[0]) {
+          console.log(`[VideoGeneration] Job ${jobId} completed successfully`);
+          return {
+            ...status,
+            output: { ...status.output, video_url: status.output.output[0] }
+          };
+        }
+        
+        if (status.status === 'SUCCEEDED' && status.output?.video_url) {
+          console.log(`[VideoGeneration] Job ${jobId} succeeded with video URL`);
+          return status;
+        }
+
+        if (status.status === 'FAILED') {
+          const errorMsg = `Video generation failed: ${status.error || 'Unknown error'}`;
+          console.error(`[VideoGeneration] ${errorMsg}`);
+          throw new Error(errorMsg);
+        }
+
+        if ((status.progress ?? 0) > progress) {
+          progress = status.progress!;
+          console.log(`[VideoGeneration] Job ${jobId} progress: ${progress}%`);
+          onProgress?.(progress);
+        }
+
+      } catch (error) {
+        console.error(`[VideoGeneration] Error during status polling:`, error);
+        consecutiveErrors++;
+        // Exponential backoff on errors, capped at 45 seconds
+        const errorWaitTime = Math.min(Math.pow(2, consecutiveErrors) * 1000, 45000);
+        await this.wait(errorWaitTime);
       }
-      
-      if (status.status === 'SUCCEEDED' && status.output?.video_url) {
-        return status;
-      }
-
-      if (status.status === 'FAILED') {
-        throw new Error(`Video generation failed: ${status.error || 'Unknown error'}`);
-      }
-
-      if ((status.progress ?? 0) > progress) {
-        progress = status.progress!;
-        onProgress?.(progress);
-      }
-
-      const wait = progress >= 90 ? 4000 : progress >= 60 ? 10000 : 15000;
-      await this.wait(wait);
     }
 
-    throw new Error('Video generation timed out');
+    const timeoutMsg = `Video generation timed out after ${timeout/1000} seconds`;
+    console.error(`[VideoGeneration] ${timeoutMsg}`);
+    throw new Error(timeoutMsg);
   }
 
   private wait(ms: number) {
